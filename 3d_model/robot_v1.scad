@@ -1,224 +1,395 @@
 // ============================================================
-// Robot V1 球形外壳 — OpenSCAD 参数化模型
-// 灵感: 蔚来 NOMI
-// 球径 60mm，前脸截面平面装 ST7789，内置锂电池 + Type-C
+// Robot V1 — 截球体智能交互终端 CAD 概念模型
+// 参考: 蔚来 NOMI
+// 球体外径 100mm，两次平面截切，全电路内置球体
 // ============================================================
 
-/* [主体尺寸] */
-SPHERE_DIAMETER = 60;     // 球体外径 6cm
-WALL_THICKNESS  = 2.5;    // 球壁厚度 (mm) — 小球的薄壁
-TOLERANCE       = 0.3;    // 打印公差 (mm)
+/* ============================================================
+   [ 主体几何参数 ]
+   ============================================================ */
+SPHERE_DIAMETER = 100;    // 球体外径 (mm)
+WALL_THICKNESS  = 3.0;    // 壳体厚度 (mm)
+TOLERANCE       = 0.3;    // 打印配合公差 (mm)
 
-/* [显示屏 — ST7789 1.54" 模块] */
-DISPLAY_PCB_W = 42;       // PCB 宽 (mm)
-DISPLAY_PCB_H = 35;       // PCB 高 (mm)
-DISPLAY_PCB_T = 1.6;      // PCB 厚 (mm)
-DISPLAY_ACTIVE_W = 27;    // 显示区域宽 (mm)
-DISPLAY_ACTIVE_H = 27;    // 显示区域高 (mm)
+// 前截面 — 显示屏安装平面
+FACE_RADIUS     = 25;     // 前截面圆半径 (mm) — 留出 50mm 直径安装面
+// 前截面距球心的 X 距离 = sqrt(50² - 25²) ≈ 43.3mm
+FACE_OFFSET_X   = sqrt(pow(SPHERE_DIAMETER / 2, 2) - pow(FACE_RADIUS, 2));
 
-/* [锂电池 — 402030 3.7V 300mAh 软包] */
-BATTERY_W = 30;           // 长 (mm)
-BATTERY_H = 20;           // 宽 (mm)
-BATTERY_T = 4;            // 厚 (mm)
+// 底截面 — 底座连接/旋转机构安装平面
+BASE_CUT_RADIUS = 17.5;   // 底截面圆半径 (mm) — 35mm 直径连接面
+// 底截面距球心的 Z 距离 = sqrt(50² - 17.5²) ≈ 46.8mm
+BASE_CUT_OFFSET_Z = sqrt(pow(SPHERE_DIAMETER / 2, 2) - pow(BASE_CUT_RADIUS, 2));
 
-/* [麦克风 — 双 INMP441] */
-MIC_DIAMETER = 3;         // 拾音孔直径 (mm)
+/* ============================================================
+   [ 显示屏参数 — ST7789 1.54" 模块 ]
+   ============================================================ */
+DISPLAY_PCB_W   = 42;     // 模块 PCB 宽
+DISPLAY_PCB_H   = 35;     // 模块 PCB 高
+DISPLAY_PCB_T   = 1.6;    // PCB 板厚
+DISPLAY_ACTIVE_W = 27;    // 显示区域宽 (可视区)
+DISPLAY_ACTIVE_H = 27;    // 显示区域高 (可视区)
+DISPLAY_GLASS_T = 2.0;    // 前面板玻璃/亚克力厚
+DISPLAY_BEZEL_W = 2.5;    // 显示窗边框宽
 
-/* [Type-C 充电口 — TP4056 Type-C 模块] */
-TYPEC_W = 9;              // 母座宽度 (mm)
-TYPEC_H = 3.5;            // 母座高度 (mm)
+/* ============================================================
+   [ 内部元件尺寸 ]
+   ============================================================ */
+// ESP32-S3-DevKitC
+ESP32_BOARD_W = 55;       ESP32_BOARD_H = 28;    ESP32_BOARD_T = 13;  // 含元件高度
 
-/* [底座] */
-BASE_DIAMETER = 60;       // 底座直径 (mm) — 与球同宽
-BASE_HEIGHT   = 30;       // 底座高度 (mm)
+// 锂电池 — 3.7V 1500-2000mAh 软包 (100mm 球有足够空间)
+BATTERY_W = 55;           BATTERY_H = 35;        BATTERY_T = 8;
 
-/* [电机 — 28BYJ-48 步进电机] */
-MOTOR_BODY_D = 28;        // 电机直径 (mm)
-MOTOR_BODY_H = 20;        // 电机高度 (mm)
+// TMC2209 步进驱动模块
+TMC2209_W = 15;           TMC2209_H = 20;        TMC2209_T = 3;
 
-/* [ESP32-S3 安装柱] */
-MOUNT_HOLE_D = 2.2;       // 螺丝孔 (mm) — M2 自攻
-MOUNT_POST_D = 5;         // 安装柱外径 (mm)
+// TP4056 Type-C 充电模块
+TYPEC_MOD_W = 25;         TYPEC_MOD_H = 18;      TYPEC_MOD_T = 5;
+TYPEC_CUTOUT_W = 9;                              TYPEC_CUTOUT_H = 3.5;
 
-// 渲染精度
-$fn = 150;
+/* ============================================================
+   [ 底座 & 旋转机构 ]
+   ============================================================ */
+BASE_DIAMETER   = 75;     // 底座外径 — 比截球稍小，视觉轻盈
+BASE_HEIGHT     = 22;     // 底座高度
+BEARING_OD      = 32;     // 推力轴承/旋转轴承座外径
+BEARING_ID      = 20;     // 轴承内径 (走线通道)
+MOTOR_BODY_D    = 28;     // 28BYJ-48 步进电机直径
+MOTOR_BODY_H    = 20;     // 电机高度
+MOTOR_SHAFT_D   = 5;      // 电机轴径
+ROTATION_HUB_D  = 22;     // 球体底部旋转连接毂外径
 
-// ---- 计算：前脸切割参数 ----
-// 要容纳 42x35mm PCB，对角约 55mm，平面需要约 55mm 直径的圆
-// 球半径 30mm，取切面半径为 28mm → 切面距球心 10.8mm
-FACE_RADIUS = (DISPLAY_PCB_W + DISPLAY_PCB_H) / 4 + 4;  // ~24mm 半径(48mm直径)
-FACE_OFFSET = sqrt(pow(SPHERE_DIAMETER / 2, 2) - pow(FACE_RADIUS, 2)); // 距球心距离
+/* ============================================================
+   [ 紧固件 ]
+   ============================================================ */
+SCREW_HOLE_D    = 2.2;    // M2 自攻螺丝底孔
+SCREW_POST_D    = 5.5;    // 螺丝柱外径
+SCREW_POST_H    = 6;      // 螺丝柱高度
+ALIGN_PIN_D     = 2.0;    // 定位销直径
+
+// ---- 渲染精度 ----
+$fn = 180;
 
 // ============================================================
-// 1. 球体外壳 — 前脸截面切除 + 各开口
+// 辅助：截球体主体几何体
 // ============================================================
-module sphere_shell() {
+module truncated_sphere_body() {
     r = SPHERE_DIAMETER / 2;
-    ir = r - WALL_THICKNESS;
 
     difference() {
-        // 外壳
         sphere(d = SPHERE_DIAMETER);
 
-        // 挖空
+        // 前截面切除
+        translate([FACE_OFFSET_X, 0, 0])
+            cube([r * 2, r * 3, r * 3], center = true);
+
+        // 底截面切除
+        translate([0, 0, -BASE_CUT_OFFSET_Z])
+            cube([r * 3, r * 3, r * 2], center = true);
+    }
+}
+
+module truncated_sphere_cavity() {
+    r = SPHERE_DIAMETER / 2 - WALL_THICKNESS;
+
+    difference() {
         sphere(d = SPHERE_DIAMETER - WALL_THICKNESS * 2);
 
-        // 前脸截面 — 一刀切出平面
-        translate([FACE_OFFSET, 0, 0])
-            cube([r * 2, r * 2, r * 2], center = true);
+        // 前截面切内部
+        translate([FACE_OFFSET_X - WALL_THICKNESS, 0, 0])
+            cube([r * 2, r * 3, r * 3], center = true);
 
-        // 显示窗口 (从截面再往内挖)
-        translate([r - WALL_THICKNESS + 1, 0, 0])
-            cube([WALL_THICKNESS + 4, DISPLAY_ACTIVE_W + 4, DISPLAY_ACTIVE_H + 4], center = true);
-
-        // 底部 — 与底座电机连接的开口
-        translate([0, 0, -r - 1])
-            cylinder(d = 25, h = r);
-
-        // 麦克风拾音孔 (左右 — 球体两侧)
-        for (side = [-1, 1]) {
-            rotate([20 * side, 0, 0])
-            translate([0, r - 2, 0])
-                rotate([90, 0, 0])
-                cylinder(d = MIC_DIAMETER, h = WALL_THICKNESS + 2, center = true);
-        }
-
-        // Type-C 开口 (球背底部)
-        translate([-r + WALL_THICKNESS, 0, -12])
-            cube([WALL_THICKNESS + 3, TYPEC_W + 2, TYPEC_H + 2], center = true);
+        // 底截面切内部 — 留出连接毂穿过的孔
+        translate([0, 0, -BASE_CUT_OFFSET_Z + WALL_THICKNESS])
+            cube([r * 3, r * 3, r * 2], center = true);
     }
-
-    // 四个安装柱 (显示屏 PCB 固定)
-    for (x = [-(DISPLAY_PCB_W / 2 - 2), (DISPLAY_PCB_W / 2 - 2)]) {
-        for (z = [-(DISPLAY_PCB_H / 2 - 2), (DISPLAY_PCB_H / 2 - 2)]) {
-            // 安装柱起点在球壳内壁
-            translate([FACE_OFFSET + 0.5, x, z])
-                rotate([0, 90, 0])
-                cylinder(d = MOUNT_POST_D, h = WALL_THICKNESS + DISPLAY_PCB_T + 3);
-        }
-    }
-
-    // Type-C 模块安装槽 (球内壁)
-    translate([-r + WALL_THICKNESS, 0, -12])
-        cube([WALL_THICKNESS + 3, TYPEC_W + 4, TYPEC_H + 8], center = true);
 }
 
 // ============================================================
-// 2. 显示面板框 — 卡在球体前脸截面上的装饰框
+// 1. 前壳 — 带显示面板安装结构
 // ============================================================
-module face_frame() {
+module front_shell() {
+    r = SPHERE_DIAMETER / 2;
+
     difference() {
-        // 与球面匹配的弧形框
+        // 前壳主体：截球前半部分
         intersection() {
-            sphere(d = SPHERE_DIAMETER);
-            translate([FACE_OFFSET - 1, 0, 0])
-                cube([3, FACE_RADIUS * 2, FACE_RADIUS * 2], center = true);
+            truncated_sphere_body();
+            // 前后分模线：球体赤道附近
+            translate([-r, -r - 1, -r - 1])
+                cube([r * 2, r * 2, r * 2 + 2]);
         }
 
-        // 显示窗口
-        translate([SPHERE_DIAMETER / 2 + 1, 0, 0])
-            cube([WALL_THICKNESS + 4, DISPLAY_ACTIVE_W, DISPLAY_ACTIVE_H], center = true);
+        // 挖空内部
+        intersection() {
+            truncated_sphere_cavity();
+            translate([-r - 1, -r - 1, -r - 1])
+                cube([r * 2 + 2, r * 2 + 2, r * 2 + 2]);
+        }
+
+        // 显示屏可视窗口 (前截面挖透)
+        hull() {
+            translate([r - 1, -DISPLAY_ACTIVE_W / 2 - DISPLAY_BEZEL_W, -DISPLAY_ACTIVE_H / 2 - DISPLAY_BEZEL_W])
+                rotate([0, 90, 0])
+                cylinder(r = 6, h = WALL_THICKNESS * 2, center = true);
+            translate([r - 1,  DISPLAY_ACTIVE_W / 2 + DISPLAY_BEZEL_W, -DISPLAY_ACTIVE_H / 2 - DISPLAY_BEZEL_W])
+                rotate([0, 90, 0])
+                cylinder(r = 6, h = WALL_THICKNESS * 2, center = true);
+            translate([r - 1, -DISPLAY_ACTIVE_W / 2 - DISPLAY_BEZEL_W,  DISPLAY_ACTIVE_H / 2 + DISPLAY_BEZEL_W])
+                rotate([0, 90, 0])
+                cylinder(r = 6, h = WALL_THICKNESS * 2, center = true);
+            translate([r - 1,  DISPLAY_ACTIVE_W / 2 + DISPLAY_BEZEL_W,  DISPLAY_ACTIVE_H / 2 + DISPLAY_BEZEL_W])
+                rotate([0, 90, 0])
+                cylinder(r = 6, h = WALL_THICKNESS * 2, center = true);
+        }
     }
+
+    // 前面板安装沉台 (显示屏 PCB 从内放入)
+    translate([FACE_OFFSET_X + WALL_THICKNESS / 2, 0, 0])
+        difference() {
+            cube([DISPLAY_PCB_T + DISPLAY_GLASS_T + 1.5, DISPLAY_PCB_W + 3, DISPLAY_PCB_H + 3], center = true);
+            cube([DISPLAY_PCB_T + DISPLAY_GLASS_T + 1.5, DISPLAY_PCB_W, DISPLAY_PCB_H], center = true);
+        }
 }
 
 // ============================================================
-// 3. 底座 — 含电机座和轴承位
+// 2. 后壳 — 含内部支架、Type-C 口、麦克风孔
 // ============================================================
-module base() {
+module rear_shell() {
+    r = SPHERE_DIAMETER / 2;
+
     difference() {
         union() {
-            // 底座桶身
-            cylinder(d = BASE_DIAMETER, h = BASE_HEIGHT);
+            // 后壳主体：截球后半部分
+            intersection() {
+                truncated_sphere_body();
+                translate([-r, -r - 1, -r - 1])
+                    cube([r * 2 + 1, r * 2 + 2, r * 2 + 2]);
+            }
 
-            // 底部防滑圈
-            translate([0, 0, 2])
-                cylinder(d = BASE_DIAMETER - 2, h = 3);
+            // 内部主板安装柱 (左右两排，ESP32 竖装)
+            for (y = [-(ESP32_BOARD_W / 2 - 4), (ESP32_BOARD_W / 2 - 4)]) {
+                translate([-20, y, 8])
+                    cylinder(d = SCREW_POST_D, h = SCREW_POST_H);
+            }
+
+            // 电池仓侧壁
+            for (side = [-1, 1]) {
+                translate([-10, side * (BATTERY_H / 2 + 1), -5])
+                    cube([BATTERY_W + 4, 2, BATTERY_T + 4], center = true);
+            }
+
+            // Type-C 充电模块安装槽 (后壳底部)
+            translate([-r + WALL_THICKNESS + 1, 0, -15])
+                cube([WALL_THICKNESS + 3, TYPEC_MOD_W + 4, TYPEC_MOD_H + 4], center = true);
+
+            // 球底旋转连接毂 (与底座电机连接的结构)
+            translate([0, 0, -BASE_CUT_OFFSET_Z])
+                cylinder(d = ROTATION_HUB_D, h = 8);
+
+            // 分模线卡扣/定位销
+            for (angle = [45, 135, 225, 315]) {
+                ax = cos(angle) * sqrt(pow(r - WALL_THICKNESS, 2) - pow(r * 0.6, 2));
+                ay = sin(angle) * sqrt(pow(r - WALL_THICKNESS, 2) - pow(r * 0.6, 2));
+                translate([0, ay * 0.6, r * 0.15 * (angle > 180 ? -1 : 1)])
+                    rotate([90, 0, 0])
+                    cylinder(d = ALIGN_PIN_D, h = 5, center = true);
+            }
         }
 
-        // 内部挖空
+        // 挖空内部
+        intersection() {
+            truncated_sphere_cavity();
+            translate([-r - 1, -r - 1, -r - 1])
+                cube([r * 2 + 2, r * 2 + 2, r * 2 + 2]);
+        }
+
+        // 主板螺丝底孔
+        for (y = [-(ESP32_BOARD_W / 2 - 4), (ESP32_BOARD_W / 2 - 4)]) {
+            translate([-20, y, 8])
+                cylinder(d = SCREW_HOLE_D, h = SCREW_POST_H + 2);
+        }
+
+        // Type-C 开口
+        translate([-r + 1, 0, -15])
+            cube([WALL_THICKNESS + 4, TYPEC_CUTOUT_W, TYPEC_CUTOUT_H], center = true);
+
+        // 麦克风拾音孔 × 2 (球体两侧)
+        for (side = [-1, 1]) {
+            rotate([15 * side, 0, 0])
+            translate([0, r - 2, 0])
+                rotate([90, 0, 0])
+                cylinder(d = 3.5, h = WALL_THICKNESS + 3, center = true);
+        }
+
+        // 前壳定位销配合孔
+        for (angle = [45, 135, 225, 315]) {
+            ay = sin(angle) * sqrt(pow(r - WALL_THICKNESS, 2) - pow(r * 0.6, 2));
+            translate([2, ay * 0.6, r * 0.15 * (angle > 180 ? -1 : 1)])
+                rotate([90, 0, 0])
+                cylinder(d = ALIGN_PIN_D + 0.3, h = 5, center = true);
+        }
+
+        // 螺丝柱配合孔 (4颗，沿分模线)
+        for (angle = [30, 150, 210, 330]) {
+            az = cos(angle) * sqrt(pow(r - WALL_THICKNESS, 2) - pow(r * 0.7, 2));
+            ax = sin(angle) * sqrt(pow(r - WALL_THICKNESS, 2) - pow(r * 0.7, 2));
+            translate([5, ax * 0.7, az * 0.7])
+                rotate([90, 0, 90])
+                cylinder(d = SCREW_HOLE_D, h = 8, center = true);
+        }
+
+        // 底截面中心孔 — 与底座电机轴配合
+        translate([0, 0, -BASE_CUT_OFFSET_Z - 1])
+            cylinder(d = MOTOR_SHAFT_D + 1, h = 20);
+
+        // 旋转毂内部走线通道 (斜向通入球体)
+        translate([0, 0, -BASE_CUT_OFFSET_Z - 0.5])
+            cylinder(d = 8, h = 25);
+    }
+}
+
+// ============================================================
+// 3. 前面板 — 黑色亚克力/玻璃盖板 (贴合前截面)
+// ============================================================
+module face_panel() {
+    difference() {
+        // 面板主体 — 圆角矩形 (与前截面对齐)
+        translate([FACE_OFFSET_X + WALL_THICKNESS / 2 + 0.5, 0, 0])
+            hull() {
+                for (sx = [-1, 1], sy = [-1, 1]) {
+                    translate([0,
+                               sx * (DISPLAY_PCB_W / 2 + 1.5 - 5),
+                               sy * (DISPLAY_PCB_H / 2 + 1.5 - 5)])
+                        cylinder(r = 5, h = DISPLAY_GLASS_T, center = true);
+                }
+            }
+
+        // 显示窗口
+        translate([FACE_OFFSET_X + WALL_THICKNESS + 1, 0, 0])
+            hull() {
+                for (sx = [-1, 1], sy = [-1, 1]) {
+                    translate([0,
+                               sx * (DISPLAY_ACTIVE_W / 2 - 3),
+                               sy * (DISPLAY_ACTIVE_H / 2 - 3)])
+                        cylinder(r = 3, h = DISPLAY_GLASS_T + 4, center = true);
+                }
+            }
+    }
+}
+
+// ============================================================
+// 4. 底座 — 电机安装仓 + 旋转轴承支撑
+// ============================================================
+module base_unit() {
+    difference() {
+        union() {
+            // 底座主体 — 圆台形
+            cylinder(d1 = BASE_DIAMETER, d2 = BASE_DIAMETER - 6, h = BASE_HEIGHT);
+
+            // 轴承座凸台
+            translate([0, 0, BASE_HEIGHT])
+                cylinder(d = BEARING_OD + 8, h = 8);
+
+            // 底部配重/防滑圈
+            translate([0, 0, 1])
+                cylinder(d = BASE_DIAMETER - 4, h = 3);
+        }
+
+        // 内腔挖空
         translate([0, 0, 4])
-            cylinder(d = BASE_DIAMETER - 6, h = BASE_HEIGHT - 2);
+            cylinder(d = BASE_DIAMETER - 8, h = BASE_HEIGHT - 2);
+
+        // 轴承安装孔
+        translate([0, 0, BASE_HEIGHT + 4])
+            cylinder(d = BEARING_OD + TOLERANCE * 2, h = 8);
 
         // 电机安装腔
         translate([0, 0, BASE_HEIGHT - MOTOR_BODY_H])
-            cylinder(d = MOTOR_BODY_D + 4, h = MOTOR_BODY_H + 8);
+            cylinder(d = MOTOR_BODY_D + 3, h = MOTOR_BODY_H + 8);
 
-        // 电机轴孔
+        // 电机轴通孔
         translate([0, 0, BASE_HEIGHT - 3])
-            cylinder(d = 6, h = 10);
+            cylinder(d = MOTOR_SHAFT_D + 1, h = 14);
 
-        // 电机螺丝孔 (4个)
+        // 电机固定螺丝 × 4
         for (angle = [0, 90, 180, 270]) {
-            translate([cos(angle) * (MOTOR_BODY_D / 2 - 1.5),
-                       sin(angle) * (MOTOR_BODY_D / 2 - 1.5),
+            translate([cos(angle) * (MOTOR_BODY_D / 2 - 1.8),
+                       sin(angle) * (MOTOR_BODY_D / 2 - 1.8),
                        BASE_HEIGHT - 3])
-                cylinder(d = 2, h = 10);
+                cylinder(d = 2.0, h = 12);
         }
 
-        // 侧面走线孔
-        translate([BASE_DIAMETER / 2 - 4, 0, 10])
+        // 侧面出线孔
+        translate([BASE_DIAMETER / 2 - 4, 0, BASE_HEIGHT / 2])
             rotate([0, 90, 0])
-            cylinder(d = 6, h = 12);
+            cylinder(d = 7, h = 14);
     }
 }
 
 // ============================================================
-// 4. 电池支架 — 球内底部
+// 5. 内部元件示意 (装配预览用)
 // ============================================================
-module battery_holder() {
+module esp32_board() {
+    color("#2d5a1e", 0.85)
     difference() {
-        union() {
-            cube([BATTERY_W + 6, BATTERY_H + 6, BATTERY_T + 3], center = true);
-            // 安装耳
-            for (y = [-(BATTERY_H / 2 + 4), (BATTERY_H / 2 + 4)]) {
-                translate([0, y, 0])
-                    cube([BATTERY_W + 10, 4, 2], center = true);
-            }
+        cube([ESP32_BOARD_W, ESP32_BOARD_H, ESP32_BOARD_T], center = true);
+        // 螺丝孔
+        for (y = [-(ESP32_BOARD_W / 2 - 4), (ESP32_BOARD_W / 2 - 4)]) {
+            translate([0, y, ESP32_BOARD_T / 2])
+                cylinder(d = SCREW_HOLE_D, h = 3, center = true);
         }
-        // 电池槽
-        translate([0, 0, 1])
-            cube([BATTERY_W + TOLERANCE, BATTERY_H + TOLERANCE, BATTERY_T + 1], center = true);
     }
 }
 
-// ============================================================
-// 5. 完整装配预览
-// ============================================================
-module robot_assembly() {
-    // 底座
-    color("DimGray") base();
-
-    // 球体
-    color("White", 0.6) sphere_shell();
-
-    // 显示框
-    color("DimGray") face_frame();
-
-    // 电池 (球内下部)
-    translate([-5, 0, -18])
-        color("RoyalBlue", 0.7)
+module battery() {
+    color("#1a3a6b", 0.7)
         cube([BATTERY_W, BATTERY_H, BATTERY_T], center = true);
+}
 
-    // ESP32 主板示意 (球内中部)
-    translate([-10, 0, 2])
-        color("ForestGreen", 0.6)
-        cube([55, 28, 2], center = true);
-
-    // 电机示意
-    translate([0, 0, BASE_HEIGHT - MOTOR_BODY_H])
-        color("Silver", 0.5)
+module motor() {
+    color("#888")
         cylinder(d = MOTOR_BODY_D, h = MOTOR_BODY_H);
+    color("#ccc")
+        translate([0, 0, MOTOR_BODY_H])
+        cylinder(d = MOTOR_SHAFT_D, h = 12);
 }
 
 // ============================================================
-// 分件导出
+// 6. 完整装配预览
+// ============================================================
+module robot_assembly_show() {
+    // 后壳
+    color("#2a2a2a") rear_shell();
+
+    // 前壳 (半透明)
+    color("#333", 0.35) front_shell();
+
+    // 前面板
+    color("#111") face_panel();
+
+    // 底座
+    color("#3a3a3a") base_unit();
+
+    // 内部元件位置示意
+    translate([-18, 0, -5])  esp32_board();
+    translate([5, 0, -10])   battery();
+
+    // 电机 (底座内)
+    translate([0, 0, BASE_HEIGHT - MOTOR_BODY_H])
+        motor();
+}
+
+// ============================================================
+// 分件导出区
 // ============================================================
 
-// 完整预览
-robot_assembly();
+// 完整预览 (默认)
+robot_assembly_show();
 
-// 分件 — 逐个取消注释导出 STL:
-// sphere_shell();     // 球体外壳
-// face_frame();       // 显示面板框
-// base();             // 底座+电机座
-// battery_holder();   // 电池支架
+// 分件 — 逐个取消注释导出:
+// front_shell();      // 前壳
+// rear_shell();       // 后壳
+// face_panel();       // 前面板 (亚克力/玻璃)
+// base_unit();        // 底座
