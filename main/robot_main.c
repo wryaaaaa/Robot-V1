@@ -2,6 +2,7 @@
 #include "freertos/task.h"
 #include "logger_wrapper.h"
 #include "robot_core.h"
+#include "uart_comm.h"
 
 static const char *TAG = "robot_main";
 
@@ -17,6 +18,11 @@ void app_main(void)
 
     if (robot_core_start() != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start robot core");
+        return;
+    }
+
+    if (uart_comm_init() != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize UART communication");
         return;
     }
 

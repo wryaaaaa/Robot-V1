@@ -1,0 +1,45 @@
+menu "UART Communication Configuration"
+
+    config UART_COMM_ENABLE
+        bool "Enable UART Communication"
+        default y
+        help
+            Enable periodic robot status transmission over UART.
+
+    config UART_COMM_PORT_NUM
+        int "UART Port Number"
+        default 1
+        range 0 2
+        help
+            UART port number. 0 = built-in USB-UART (logs share),
+            1 = UART1 (recommended for independent status output).
+
+    config UART_COMM_TX_GPIO
+        int "TX GPIO"
+        range 0 48
+        default 8
+        help
+            GPIO number for UART TX (status data output).
+
+    config UART_COMM_RX_GPIO
+        int "RX GPIO"
+        range 0 48
+        default 9
+        help
+            GPIO number for UART RX (command input, optional).
+
+    config UART_COMM_BAUD_RATE
+        int "Baud Rate"
+        default 115200
+        range 9600 921600
+        help
+            UART baud rate for status communication.
+
+    config UART_COMM_INTERVAL_MS
+        int "Status Report Interval (ms)"
+        default 1000
+        range 100 60000
+        help
+            How often the robot sends its status over UART.
+
+endmenu
