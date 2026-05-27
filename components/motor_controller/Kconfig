@@ -1,0 +1,45 @@
+menu "Motor Controller Configuration"
+
+    config MOTOR_CONTROLLER_ENABLE
+        bool "Enable Motor Controller"
+        default y
+        help
+            Enable stepper motor control via TMC2209 driver for
+            pan-axis rotation of the robot sphere.
+
+    config MOTOR_STEP_GPIO
+        int "STEP GPIO"
+        range 0 48
+        default 10
+        help
+            GPIO number for the STEP signal to the TMC2209 driver.
+
+    config MOTOR_DIR_GPIO
+        int "DIR GPIO"
+        range 0 48
+        default 11
+        help
+            GPIO number for the DIR signal to the TMC2209 driver.
+
+    config MOTOR_EN_GPIO
+        int "EN GPIO"
+        range 0 48
+        default 12
+        help
+            GPIO number for the EN (enable) signal to the TMC2209 driver.
+            Low = enabled, High = disabled (internal pullup keeps motor off).
+
+    config MOTOR_STEPS_PER_REV
+        int "Steps per Revolution"
+        default 200
+        help
+            Full steps per revolution without microstepping.
+            200 = 1.8 degree per step (standard NEMA stepper).
+
+    config MOTOR_MICROSTEPS
+        int "Microstepping"
+        default 16
+        help
+            Microstepping multiplier. 16 = 1/16 step (common for TMC2209).
+
+endmenu

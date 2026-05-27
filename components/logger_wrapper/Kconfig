@@ -1,0 +1,38 @@
+menu "Logger Wrapper Configuration"
+
+    config LOGGER_WRAPPER_ENABLE
+        bool "Enable Logger Wrapper"
+        default y
+        help
+            Enable the logger wrapper component. When enabled, all ESP_LOGx
+            macros are intercepted and log entries are stored in a PSRAM
+            ring buffer in addition to normal console output.
+
+    config LOGGER_WRAPPER_RING_BUFFER_SIZE
+        int "Ring buffer size (bytes)"
+        default 32768
+        range 1024 1048576
+        depends on LOGGER_WRAPPER_ENABLE
+        help
+            Total size of the PSRAM ring buffer in bytes. Each log entry
+            uses a fixed-size slot (header + max tag + max message).
+
+    config LOGGER_WRAPPER_MAX_TAG_LEN
+        int "Maximum tag length"
+        default 32
+        range 8 128
+        depends on LOGGER_WRAPPER_ENABLE
+        help
+            Maximum length of log tag strings stored in the ring buffer.
+            Tags longer than this will be truncated.
+
+    config LOGGER_WRAPPER_MAX_MSG_LEN
+        int "Maximum message length"
+        default 256
+        range 64 1024
+        depends on LOGGER_WRAPPER_ENABLE
+        help
+            Maximum length of formatted log message strings stored in the
+            ring buffer. Messages longer than this will be truncated.
+
+endmenu

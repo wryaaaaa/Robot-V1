@@ -1,0 +1,16 @@
+menu "Robot Configuration"
+
+    config ROBOT_NAME
+        string "Robot Name"
+        default "V1"
+        help
+            Name identifier for this robot instance.
+
+    config ROBOT_POLL_INTERVAL_MS
+        int "Sensor Poll Interval (ms)"
+        default 50
+        range 10 500
+        help
+            Interval at which the robot core polls audio and motor state.
+
+endmenu

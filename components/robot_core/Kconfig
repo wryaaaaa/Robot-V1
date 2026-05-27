@@ -1,0 +1,10 @@
+menu "Robot Core Configuration"
+
+    config ROBOT_CORE_ENABLE
+        bool "Enable Robot Core"
+        default y
+        help
+            Enable the robot core state machine that coordinates
+            audio localization, motor control, and display.
+
+endmenu

@@ -1,0 +1,52 @@
+menu "Display Driver Configuration"
+
+    config DISPLAY_DRIVER_ENABLE
+        bool "Enable Display Driver"
+        default y
+        help
+            Enable ST7789 SPI display driver for the robot face screen.
+
+    config DISPLAY_SPI_MOSI
+        int "SPI MOSI GPIO"
+        range 0 48
+        default 13
+        help
+            GPIO number for the SPI MOSI data line to the ST7789 display.
+
+    config DISPLAY_SPI_SCLK
+        int "SPI SCLK GPIO"
+        range 0 48
+        default 14
+        help
+            GPIO number for the SPI clock line to the ST7789 display.
+
+    config DISPLAY_CS_GPIO
+        int "CS GPIO"
+        range 0 48
+        default 15
+        help
+            GPIO number for the chip select line to the ST7789 display.
+
+    config DISPLAY_DC_GPIO
+        int "DC GPIO"
+        range 0 48
+        default 16
+        help
+            GPIO number for the data/command line to the ST7789 display.
+
+    config DISPLAY_RST_GPIO
+        int "RST GPIO"
+        range 0 48
+        default 17
+        help
+            GPIO number for the reset line to the ST7789 display.
+
+    config DISPLAY_BL_GPIO
+        int "Backlight GPIO"
+        range 0 48
+        default 18
+        help
+            GPIO number for the backlight control of the ST7789 display.
+            Set to -1 if backlight is hardwired.
+
+endmenu
